@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>見学会LP 改善プレビュー｜Wing Home</title>
+<style>
+/* ============================================================
+   プレビュー用ツールバー（本番には含まれない部分）
+============================================================ */
+:root{
+  --wh-orange:#f60;
+  --wh-orange-soft:#f18e44;
+  --wh-ink:#1a1a1a;
+  --wh-gray:#686868;
+  --wh-line:#d1d1d1;
+  --wh-bg:#f7f5f1;
+  --line-green:#06c755;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo",sans-serif;
+  background:#e8e6e1;
+  color:var(--wh-ink);
+  line-height:1.8;
+}
+.toolbar{
+  position:sticky;top:0;z-index:100;
+  background:#2b2b2b;color:#fff;
+  padding:10px 16px;
+  display:flex;flex-wrap:wrap;gap:16px;align-items:center;
+  font-size:13px;
+}
+.toolbar .tb-title{font-weight:bold;margin-right:8px;}
+.tb-group{display:flex;align-items:center;gap:6px;}
+.tb-group span{color:#bbb;}
+.tb-btn{
+  background:#444;color:#fff;border:1px solid #666;
+  padding:5px 14px;border-radius:4px;cursor:pointer;font-size:13px;
+}
+.tb-btn.active{background:var(--wh-orange);border-color:var(--wh-orange);font-weight:bold;}
+
+/* デバイスフレーム */
+.stage{padding:24px 8px 64px;display:flex;justify-content:center;}
+.device{
+  background:#fff;width:100%;max-width:1080px;
+  padding:32px 0 48px;
+  box-shadow:0 4px 24px rgba(0,0,0,.15);
+  transition:max-width .3s ease;
+}
+body.sp-mode .device{max-width:390px;}
+
+/* 変更注釈バッジ（ページのトーンに合わせたオレンジ系） */
+.note{
+  display:inline-block;background:var(--wh-orange-soft);color:#fff;
+  font-size:11px;font-weight:bold;padding:3px 12px;border-radius:2px;
+  margin:0 0 10px;letter-spacing:.05em;
+}
+.note-box{
+  border:1px dashed var(--wh-orange-soft);border-radius:2px;
+  padding:16px;margin:0 0 8px;position:relative;
+}
+body.hide-notes .note,
+body.hide-notes .note-box{border:none;padding:0;}
+body.hide-notes .note{display:none;}
+
+/* ============================================================
+   LP本体（既存 winghome.jp のトーンに合わせたモック）
+============================================================ */
+.lp-inner{max-width:920px;margin:0 auto;padding:0 16px 40px;}
+body.sp-mode .lp-inner{padding:0 12px 32px;}
+
+/* ④ ファーストビュー：写真から始める（カルーセル） */
+.fv{margin:0 0 12px;}
+.carousel-main{position:relative;}
+.fv .photo{
+  width:100%;aspect-ratio:1/1;
+  display:flex;align-items:center;justify-content:center;
+  color:#777;font-size:14px;text-align:center;line-height:1.6;
+  position:relative;transition:background .3s;
+}
+/* 左右の矢印（本番 slick-arrow と同デザイン） */
+.c-arrow{
+  position:absolute;top:50%;transform:translateY(-50%);
+  width:60px;height:60px;border-radius:50%;
+  background:#f60;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  z-index:1;padding:0;
+  transition:opacity .2s;
+}
+.c-arrow::before{
+  content:'';display:block;
+  width:20px;height:6px;
+  -webkit-clip-path:polygon(0 80%, 95% 80%, 80% 0, 85% 0, 100% 80%, 100% 100%, 0 100%);
+  clip-path:polygon(0 80%, 95% 80%, 80% 0, 85% 0, 100% 80%, 100% 100%, 0 100%);
+  background:#ffffff;
+}
+.c-arrow.prev::before{transform:rotateY(180deg);}
+.c-arrow:hover{opacity:.85;}
+.c-arrow.next{right:3%;}
+.c-arrow.prev{left:3%;}
+body.sp-mode .c-arrow{width:40px;height:40px;}
+body.sp-mode .c-arrow.next{right:-3%;}
+body.sp-mode .c-arrow.prev{left:-3%;}
+/* キャプション：メイン画像とサムネイルの間 */
+.carousel-cap{
+  font-size:14px;color:var(--wh-ink);text-align:left;
+  padding:12px 4px;min-height:1.5em;
+}
+body.sp-mode .carousel-cap{font-size:13px;padding:10px 2px;}
+/* サムネイル列 */
+.carousel-thumbs{
+  display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;
+  -webkit-overflow-scrolling:touch;
+}
+.carousel-thumbs .thumb{
+  flex:0 0 auto;width:96px;aspect-ratio:1/1;
+  cursor:pointer;opacity:.55;
+  display:flex;align-items:center;justify-content:center;
+  color:#777;font-size:10px;text-align:center;line-height:1.4;
+  padding:2px;transition:opacity .2s;
+}
+.carousel-thumbs .thumb.on{opacity:1;}
+body.sp-mode .carousel-thumbs .thumb{width:64px;font-size:9px;}
+
+/* タイトル（写真の下へ移動） */
+.entry-title{
+  font-family:"Yu Mincho","YuMincho","Hiragino Mincho Pro",serif;
+  font-size:22px;line-height:1.7;text-align:center;
+  padding:20px 8px 8px;font-weight:600;
+}
+body.sp-mode .entry-title{font-size:16px;padding:14px 4px 4px;}
+
+/* タグ一覧（タイトル直下） */
+.tags-links{
+  text-align:center;
+  padding:4px 0 8px;
+}
+.tags-links a{
+  display:inline-block;
+  border:1px solid var(--wh-orange-soft);
+  color:var(--wh-orange-soft);
+  background:#fff;
+  font-size:12px;
+  text-decoration:none;
+  padding:3px 12px;
+  border-radius:3px;
+  margin:3px 3px;
+  line-height:1.6;
+}
+.tags-links a:hover{background:#fff4ec;}
+body.sp-mode .tags-links a{font-size:11px;padding:2px 10px;}
+
+/* 開催概要テーブル */
+.tour_wrap{margin:16px 0 20px;}
+.tour_wrap table{width:100%;border-collapse:collapse;font-size:14px;}
+.tour_wrap th{
+  width:7em;text-align:left;font-weight:600;color:var(--wh-ink);
+  padding:8px 4px;vertical-align:top;white-space:nowrap;
+}
+.tour_wrap td{padding:8px 4px;color:#333;}
+.tour_wrap tr{border-bottom:1px dotted var(--wh-line);}
+
+/* ② 対応スタッフはこちら（FV直下・アコーディオン） */
+/* スタッフ関連ボタン（共通デザイン） */
+.staff-toggle,
+.staff-more a{
+  display:block;width:100%;
+  background:#fff;color:var(--wh-ink);
+  border:1px solid var(--wh-ink);border-radius:3px;
+  padding:14px 44px;
+  font-family:inherit;font-size:14px;font-weight:bold;
+  text-align:center;text-decoration:none;
+  cursor:pointer;position:relative;
+  box-shadow:0 0 0 rgba(0,0,0,0);
+  transition:background .5s ease, border-color .5s ease, color .5s ease, box-shadow .5s ease;
+}
+.staff-toggle:hover,
+.staff-more a:hover{
+  border-color:#fa6914;color:#fa6914;
+  box-shadow:0 4px 12px rgba(0,0,0,.14);
+}
+.staff-toggle:hover::after,
+.staff-more a:hover .arrow{
+  border-right-color:#fa6914;
+  border-bottom-color:#fa6914;
+}
+body.sp-mode .staff-toggle:hover,
+body.sp-mode .staff-more a:hover{box-shadow:none;}
+/* 矢印：二辺borderのシェブロン（共通） */
+.staff-toggle::after,
+.staff-more a .arrow{
+  content:"";position:absolute;right:20px;top:50%;
+  display:block;width:7px;height:7px;margin:0;
+  border-right:2px solid var(--wh-ink);
+  border-bottom:2px solid var(--wh-ink);
+  transition:transform .25s ease, border-color .5s ease;
+}
+/* 開閉ボタン：下向き ⇔ 上向き */
+.staff-toggle::after{transform:translateY(-70%) rotate(45deg);}
+.staff-toggle.open::after{transform:translateY(-30%) rotate(225deg);}
+/* ページリンク：右向き */
+.staff-more a .arrow{transform:translate(2px,-50%) rotate(-45deg);}
+/* スタッフ紹介ページリンクは文字数に合わせた幅 */
+.staff-more a{display:inline-block;width:auto;}
+body.sp-mode .staff-toggle,
+body.sp-mode .staff-more a{font-size:13px;padding:13px 40px;}
+.staff-panel{
+  max-height:0;overflow:hidden;transition:max-height .4s ease;
+  background:#fff;
+}
+.staff-panel-inner{padding:20px 0 0;}
+.staff-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:14px;
+}
+body.sp-mode .staff-grid{grid-template-columns:1fr;gap:10px;}
+.staff-card{
+  background:#fff;border:1px solid var(--wh-line);border-radius:4px;
+  padding:0 0 24px;text-align:center;overflow:hidden;
+}
+.staff-photo{
+  width:100%;aspect-ratio:1/1;
+  margin:0 0 16px;border-radius:0;
+  display:flex;align-items:center;justify-content:center;
+  color:#777;font-size:13px;
+}
+.staff-card .name{
+  font-family:"Yu Mincho","Hiragino Mincho Pro",serif;
+  font-size:16px;font-weight:600;margin:0 0 2px;
+}
+.staff-card .role{font-size:11px;color:var(--wh-gray);letter-spacing:.05em;margin:0 0 16px;}
+.staff-card dl{
+  font-size:12px;text-align:left;line-height:1.8;padding:0 20px;
+  display:grid;grid-template-columns:3.5em 1fr;row-gap:10px;
+}
+.staff-card dt{font-weight:600;color:var(--wh-orange-soft);}
+.staff-card dd{color:#444;margin:0;}
+.staff-more{margin-top:24px;text-align:center;}
+/* パネル末尾の閉じるボタン */
+.staff-close{text-align:center;margin-top:16px;padding-bottom:4px;}
+.staff-close button{
+  background:none;border:none;cursor:pointer;
+  color:var(--wh-gray);font-size:13px;padding:6px 20px;
+  position:relative;
+}
+.staff-close button::before{
+  content:"";display:inline-block;
+  width:7px;height:7px;margin-right:8px;
+  border-left:1.5px solid var(--wh-gray);
+  border-top:1.5px solid var(--wh-gray);
+  transform:translateY(2px) rotate(45deg);
+}
+.staff-close button:hover{color:var(--wh-ink);}
+
+/* 予約セクション（Aパターン：受付中） */
+#yoyaku{margin:32px 0;text-align:center;}
+#yoyaku h2{
+  font-family:"Yu Mincho","Hiragino Mincho Pro",serif;
+  font-size:20px;margin:0 0 12px;font-weight:600;
+}
+body.sp-mode #yoyaku h2{font-size:16px;}
+/* SP表示時：セクション見出しを1〜3pt縮小 */
+body.sp-mode #point h2{font-size:16px;}
+body.sp-mode #point h3{font-size:14px;}
+#yoyaku p{font-size:13px;color:#444;margin:0 0 16px;}
+/* 予約・カタログの2枚ボタン（本番支給CSS） */
+.yoyaku-cta__flex{
+  list-style:none;
+  display:flex;
+  gap:12px;
+  max-width:640px;
+  width:100%;
+  margin:auto !important;
+  padding:0;
+}
+.yoyaku-cta__flex li{
+  width:calc((100% - 12px) / 2);
+}
+/* ボタンが1枚だけのとき（WEB予約なし時）は左右中央揃え */
+.yoyaku-cta__flex.is-single{
+  justify-content:center;
+}
+/* WEB予約なし時：LINE/電話の列とカタログボタンの間隔 */
+.cta-off .yoyaku-cta__flex{
+  margin-top:40px !important;
+}
+.yoyaku-cta__flex a{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  border:2px solid #fa6914;
+  width:100%;
+  height:100px;
+  font-family:"游ゴシック体",YuGothic,"游ゴシック Medium","Yu Gothic Medium","游ゴシック","Yu Gothic",sans-serif;
+  font-size:18px;
+  font-weight:bold;
+  color:#fa6914;
+  text-decoration:none;
+  box-shadow:none;
+  transition:.5s ease;
+}
+.yoyaku-cta__flex a:hover{
+  opacity:.6;
+}
+.yoyaku-cta__flex span{
+  display:flex;
+  align-items:center;
+}
+.yoyaku-cta__flex small{
+  font-size:13px;
+  font-weight:normal;
+}
+.yoyaku-cta__yoyaku a{
+  background-color:#fa6914;
+  color:#fff;
+}
+.yoyaku-cta__request a{
+  border-color:#fa6914;
+  color:#fa6914;
+}
+.yoyaku-cta__yoyaku span::before,
+.yoyaku-cta__request span::before{
+  content:"";
+  display:inline-block;
+  width:2em;
+  height:2em;
+  margin-right:0.4em;
+  vertical-align:middle;
+  background-color:#fff5eb;
+  border-radius:50%;
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:80%;
+}
+/* 予約ボタン用アイコン（本番: images/tour/icon-yoyaku.svg） */
+.yoyaku-cta__yoyaku span::before{
+  background-image:url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iX+ODrOOCpOODpOODvF8xIiBkYXRhLW5hbWU9IuODrOOCpOODpOODvF8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIiB2ZXJzaW9uPSIxLjEiIHZpZXdCb3g9IjAgMCAzMDAgMzAwIj4KICA8IS0tIEdlbmVyYXRvcjogQWRvYmUgSWxsdXN0cmF0b3IgMzAuNC4wLCBTVkcgRXhwb3J0IFBsdWctSW4gLiBTVkcgVmVyc2lvbjogMi4xLjQgQnVpbGQgMjI2KSAgLS0+CiAgPGRlZnM+CiAgICA8c3R5bGU+CiAgICAgIC5zdDAgewogICAgICAgIGZpbGw6ICNmYTg3NzU7CiAgICAgIH0KCiAgICAgIC5zdDEgewogICAgICAgIGZpbGw6ICNmZmY7CiAgICAgIH0KCiAgICAgIC5zdDIgewogICAgICAgIGZpbGw6ICM1NTU1Nzg7CiAgICAgIH0KCiAgICAgIC5zdDMgewogICAgICAgIGZpbGw6ICNmNWY1ZjU7CiAgICAgIH0KCiAgICAgIC5zdDQgewogICAgICAgIGZpbGw6ICNmZmQ2NDg7CiAgICAgIH0KCiAgICAgIC5zdDUgewogICAgICAgIGZpbGw6ICNkMmQyZDI7CiAgICAgIH0KCiAgICAgIC5zdDYgewogICAgICAgIGZpbGw6ICNlNmU2ZTY7CiAgICAgIH0KICAgIDwvc3R5bGU+CiAgPC9kZWZzPgogIDxwb2x5Z29uIGNsYXNzPSJzdDUiIHBvaW50cz0iNDIuMDMgMjE2Ljk5NSA3MS45MzQgMjI1LjU1MyAxMTAuNTQzIDI1Ni40ODIgMTY3Ljg2MiAxNTMuMzMzIDQyLjAzIDIxNi45OTUgNDIuMDMgMjE2Ljk5NSIvPgogIDxwYXRoIGNsYXNzPSJzdDIiIGQ9Ik0xODIuNjU2LDU4LjY5NGMtLjMxMS0uODgyLS41NDMtMS43OTEtLjY2OC0yLjcxOS4wMjQuMTc4LjA0OC4zNTcuMDcyLjUzNS0uMDA1LS4wMzQtLjAwOS0uMDY5LS4wMTMtLjEwMy4wMTEtLjI3Ny0uMDQ3LS41MzUtLjE3My0uNzc1LS4wODEtLjI0OS0uMjItLjQ2NS0uNDE2LS42NDgtLjE4Mi0uMTk2LS4zOTgtLjMzNS0uNjQ4LS40MTYtLjI0LS4xMjYtLjQ5OC0uMTg0LS43NzUtLjE3My0uNTIuMDIzLTEuMDYuMTk0LTEuNDIzLjU4OS0uMTA1LjEzNi0uMjEuMjcxLS4zMTUuNDA3LS4xODIuMzE0LS4yNzQuNjUyLS4yNzUsMS4wMTYuMTQ0LDEuMTUuMzY4LDIuMjYyLjc1MywzLjM1Ny4xNzYuNDk5LjQ1Ny45MjkuOTI1LDEuMjAzLjIzMS4xNDcuNDguMjI3Ljc0OC4yMzkuMjY3LjA2LjUzNS4wNDguODAyLS4wMzYuNDg3LS4xNTguOTU3LS40NTksMS4yMDItLjkyNS4yNDMtLjQ2LjM4Mi0xLjA0Mi4yMDMtMS41NTFoMFoiLz4KICA8cGF0aCBjbGFzcz0ic3QyIiBkPSJNOTguMTI4LDEwOS4xMjVjLS4zMTEtLjg4Mi0uNTQzLTEuNzkxLS42NjgtMi43MTkuMDI0LjE3OC4wNDguMzU3LjA3Mi41MzUtLjAwNS0uMDM0LS4wMDktLjA2OS0uMDEzLS4xMDMuMDExLS4yNzctLjA0Ny0uNTM1LS4xNzMtLjc3NS0uMDgxLS4yNDktLjIyLS40NjUtLjQxNi0uNjQ4LS4xODItLjE5Ni0uMzk4LS4zMzUtLjY0OC0uNDE2LS4yNC0uMTI2LS40OTgtLjE4NC0uNzc1LS4xNzMtLjUyLjAyMy0xLjA2LjE5NC0xLjQyMy41ODktLjEwNS4xMzYtLjIxLjI3MS0uMzE1LjQwNy0uMTgyLjMxNC0uMjc0LjY1Mi0uMjc1LDEuMDE2LjE0NCwxLjE1LjM2OCwyLjI2Mi43NTMsMy4zNTcuMTc2LjQ5OS40NTcuOTI5LjkyNSwxLjIwMy4yMzEuMTQ3LjQ4LjIyNy43NDguMjM5LjI2OC4wNi41MzUuMDQ4LjgwMi0uMDM2LjQ4Ny0uMTU4Ljk1Ny0uNDU5LDEuMjAzLS45MjUuMjQzLS40Ni4zODItMS4wNDIuMjAzLTEuNTUxaDBaIi8+CiAgPHBvbHlnb24gY2xhc3M9InN0NCIgcG9pbnRzPSI2NS4yOSAxMjcuOTUyIDYwLjA0NSAxNDcuMjQ2IDYyLjIxMiAxNDguMTk0IDY4LjU3NSAxMjYuMDQ0IDY1LjI5IDEyNy45NTIiLz4KICA8cG9seWdvbiBjbGFzcz0ic3Q2IiBwb2ludHM9IjY2LjU2MiAxMzAuMjkyIDQyLjAzIDIxNi45OTUgMTY3Ljg2MiAxNTMuMzMzIDIxMy45ODkgNDUuMTc1IDY2LjU2MiAxMzAuMjkyIi8+CiAgPHBvbHlnb24gY2xhc3M9InN0MyIgcG9pbnRzPSIyNTcuOTcgMTcxLjM2NSAxMTAuNTQzIDI1Ni40ODIgNjYuNTYyIDEzMC4yOTIgMjEzLjk4OSA0NS4xNzUgMjU3Ljk3IDE3MS4zNjUiLz4KICA8cGF0aCBjbGFzcz0ic3Q0IiBkPSJNMjIzLjA2Myw2NS4zMTdsLTE0OS4xODcsODguMzkyLTguNTg2LTI1Ljc1N0wyMDguMjc1LDQ0LjIxOWMyLjc1OC0xLjU5Miw2LjI4Ni0uMzY0LDcuNDU5LDIuNTk3bDcuMzI5LDE4LjUwMloiLz4KICA8cG9seWdvbiBjbGFzcz0ic3Q2IiBwb2ludHM9IjExMC40ODkgMjU2LjE4NyAxMDguMTI3IDI1NC4zOTIgNzIuNTg3IDE1Mi44MDMgNzQuMDI4IDE1Mi4yNjUgMTEwLjQ4OSAyNTYuMTg3Ii8+CiAgPHBvbHlnb24gY2xhc3M9InN0MyIgcG9pbnRzPSI2NS41OTcgMTMzLjQ3MiA0Mi4wMyAyMTYuOTk1IDQ0LjA1NSAyMTguNTY0IDY2LjkwMiAxMzUuNjA4IDY1LjU5NyAxMzMuNDcyIi8+CiAgPHBvbHlnb24gY2xhc3M9InN0NCIgcG9pbnRzPSI3NC43NTYgMTU0LjAyMiA3Mi43IDE1Mi45OTQgNjQuNjE0IDEzMC44NzUgNjYuMDU0IDEzMC4zMzcgNzQuNzU2IDE1NC4wMjIiLz4KICA8cGF0aCBjbGFzcz0ic3Q1IiBkPSJNMTMzLjMwMSwxNTAuNDc4bC0zLjI3MywxLjgwNmMtMS4wNjcuNTg5LTIuNDA3LjA3Ni0yLjgwOS0xLjA3NGwtMi4wNC01LjgzNWMtLjMxNy0uOTA3LjA2Ny0xLjkwOS45MDctMi4zNzNsMy4yNzMtMS44MDZjMS4wNjctLjU4OSwyLjQwNy0uMDc3LDIuODA5LDEuMDc0bDIuMDM5LDUuODM1Yy4zMTcuOTA3LS4wNjYsMS45MDktLjkwNywyLjM3M1oiLz4KICA8cGF0aCBjbGFzcz0ic3Q1IiBkPSJNMTUwLjEzOCwxNDEuMDE2bC0zLjI3MywxLjgwNmMtMS4wNjcuNTg5LTIuNDA3LjA3Ni0yLjgwOS0xLjA3NGwtMi4wMzktNS44MzVjLS4zMTctLjkwNi4wNjctMS45MDkuOTA3LTIuMzczbDMuMjczLTEuODA2YzEuMDY3LS41ODksMi40MDctLjA3NiwyLjgwOSwxLjA3NGwyLjA0LDUuODM1Yy4zMTcuOTA2LS4wNjcsMS45MDktLjkwNywyLjM3M1oiLz4KICA8cGF0aCBjbGFzcz0ic3Q1IiBkPSJNMTY2Ljk3NSwxMzEuNTUzbC0zLjI3MywxLjgwNmMtMS4wNjcuNTg5LTIuNDA3LjA3Ni0yLjgwOS0xLjA3NGwtMi4wNC01LjgzNWMtLjMxNy0uOTA2LjA2Ny0xLjkwOS45MDctMi4zNzNsMy4yNzMtMS44MDZjMS4wNjctLjU4OSwyLjQwNy0uMDc2LDIuODA5LDEuMDc0bDIuMDM5LDUuODM1Yy4zMTcuOTA2LS4wNjcsMS45MDktLjkwNywyLjM3M1oiLz4KICA8cGF0aCBjbGFzcz0ic3Q1IiBkPSJNMTgzLjgxMywxMjIuMDkxbC0zLjI3MywxLjgwNmMtMS4wNjcuNTg5LTIuNDA3LjA3Ni0yLjgwOS0xLjA3NGwtMi4wNC01LjgzNWMtLjMxNy0uOTA2LjA2Ny0xLjkwOS45MDctMi4zNzNsMy4yNzMtMS44MDZjMS4wNjctLjU4OSwyLjQwNy0uMDc2LDIuODA5LDEuMDc0bDIuMDQsNS44MzVjLjMxNy45MDYtLjA2NywxLjkwOS0uOTA3LDIuMzczWiIvPgogIDxwYXRoIGNsYXNzPSJzdDUiIGQ9Ik0yMDAuNjUsMTEyLjYyOWwtMy4yNzMsMS44MDZjLTEuMDY3LjU4OS0yLjQwNy4wNzctMi44MDktMS4wNzRsLTIuMDM5LTUuODM1Yy0uMzE3LS45MDYuMDY3LTEuOTA5LjkwNy0yLjM3M2wzLjI3My0xLjgwNmMxLjA2Ny0uNTg5LDIuNDA3LS4wNzYsMi44MDksMS4wNzRsMi4wMzksNS44MzVjLjMxNy45MDctLjA2NywxLjkwOS0uOTA3LDIuMzczWiIvPgogIDxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0yMTcuNDg3LDEwMy4xNjZsLTMuMjczLDEuODA2Yy0xLjA2Ny41ODktMi40MDcuMDc2LTIuODA5LTEuMDc0bC0yLjAzOS01LjgzNWMtLjMxNy0uOTA2LjA2Ny0xLjkwOS45MDctMi4zNzNsMy4yNzMtMS44MDZjMS4wNjctLjU4OSwyLjQwNy0uMDc2LDIuODA5LDEuMDc0bDIuMDM5LDUuODM1Yy4zMTcuOTA3LS4wNjcsMS45MDktLjkwNywyLjM3M1oiLz4KICA8cGF0aCBjbGFzcz0ic3Q1IiBkPSJNMTIyLjI1NywxNzcuMzYzbC0zLjI3MywxLjgwNmMtMS4wNjcuNTg5LTIuNDA3LjA3Ni0yLjgwOS0xLjA3NGwtMi4wNC01LjgzNWMtLjMxNy0uOTA3LjA2Ny0xLjkwOS45MDctMi4zNzNsMy4yNzMtMS44MDZjMS4wNjctLjU4OSwyLjQwNy0uMDc2LDIuODA5LDEuMDc0bDIuMDQsNS44MzVjLjMxNy45MDYtLjA2NywxLjkwOS0uOTA3LDIuMzczWiIvPgogIDxwYXRoIGNsYXNzPSJzdDUiIGQ9Ik0xMzkuMDk0LDE2Ny45MDFsLTMuMjczLDEuODA2Yy0xLjA2Ny41ODktMi40MDcuMDc2LTIuODA5LTEuMDc0bC0yLjA0LTUuODM1Yy0uMzE3LS45MDYuMDY3LTEuOTA5LjkwNy0yLjM3M2wzLjI3My0xLjgwNmMxLjA2Ny0uNTg5LDIuNDA3LS4wNzYsMi44MDksMS4wNzRsMi4wMzksNS44MzVjLjMxNy45MDYtLjA2NiwxLjkwOS0uOTA3LDIuMzczWiIvPgogIDxwYXRoIGNsYXNzPSJzdDUiIGQ9Ik0xNTUuOTMxLDE1OC40MzhsLTMuMjczLDEuODA2Yy0xLjA2Ny41ODktMi40MDcuMDc2LTIuODA5LTEuMDc0bC0yLjA0LTUuODM1Yy0uMzE3LS45MDYuMDY3LTEuOTA5LjkwNy0yLjM3M2wzLjI3My0xLjgwNmMxLjA2Ny0uNTg5LDIuNDA3LS4wNzYsMi44MDksMS4wNzRsMi4wNCw1LjgzNWMuMzE3LjkwNi0uMDY3LDEuOTA5LS45MDcsMi4zNzNaIi8+CiAgPHBhdGggY2xhc3M9InN0NSIgZD0iTTE3Mi43NjgsMTQ4Ljk3NmwtMy4yNzMsMS44MDZjLTEuMDY3LjU4OS0yLjQwNy4wNzYtMi44MDktMS4wNzRsLTIuMDM5LTUuODM1Yy0uMzE3LS45MDYuMDY3LTEuOTA5LjkwNy0yLjM3M2wzLjI3My0xLjgwNmMxLjA2Ny0uNTg5LDIuNDA3LS4wNzYsMi44MDksMS4wNzRsMi4wMzksNS44MzVjLjMxNy45MDYtLjA2NywxLjkwOS0uOTA3LDIuMzczWiIvPgogIDxwYXRoIGNsYXNzPSJzdDUiIGQ9Ik0xODkuNjA1LDEzOS41MTRsLTMuMjczLDEuODA2Yy0xLjA2Ny41ODktMi40MDcuMDc2LTIuODA5LTEuMDc0bC0yLjAzOS01LjgzNWMtLjMxNy0uOTA2LjA2Ny0xLjkwOS45MDctMi4zNzNsMy4yNzMtMS44MDZjMS4wNjctLjU4OSwyLjQwNy0uMDc2LDIuODA5LDEuMDc0bDIuMDM5LDUuODM1Yy4zMTcuOTA2LS4wNjcsMS45MDktLjkwNywyLjM3M1oiLz4KICA8cGF0aCBjbGFzcz0ic3Q1IiBkPSJNMjA2LjQ0MiwxMzAuMDUxbC0zLjI3MywxLjgwNmMtMS4wNjcuNTg5LTIuNDA3LjA3Ni0yLjgwOS0xLjA3NGwtMi4wMzktNS44MzVjLS4zMTctLjkwNi4wNjctMS45MDkuOTA3LTIuMzczbDMuMjczLTEuODA2YzEuMDY3LS41ODksMi40MDctLjA3NiwyLjgwOSwxLjA3NGwyLjA0LDUuODM1Yy4zMTcuOTA3LS4wNjcsMS45MDktLjkwNywyLjM3M1oiLz4KICA8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMjIzLjI3OSwxMjAuNTg5bC0zLjI3MywxLjgwNmMtMS4wNjcuNTg5LTIuNDA3LjA3Ni0yLjgwOS0xLjA3NGwtMi4wNC01LjgzNWMtLjMxNy0uOTA2LjA2Ny0xLjkwOS45MDctMi4zNzNsMy4yNzMtMS44MDZjMS4wNjctLjU4OSwyLjQwNy0uMDc2LDIuODA5LDEuMDc0bDIuMDQsNS44MzVjLjMxNy45MDYtLjA2NywxLjkwOS0uOTA3LDIuMzczWiIvPgogIDxwYXRoIGNsYXNzPSJzdDUiIGQ9Ik0xMjguMDQ5LDE5NC43ODZsLTMuMjczLDEuODA2Yy0xLjA2Ny41ODktMi40MDcuMDc2LTIuODA5LTEuMDc0bC0yLjAzOS01LjgzNWMtLjMxNy0uOTA3LjA2Ni0xLjkwOS45MDctMi4zNzNsMy4yNzMtMS44MDZjMS4wNjctLjU4OSwyLjQwNy0uMDc3LDIuODA5LDEuMDc0bDIuMDM5LDUuODM1Yy4zMTcuOTA3LS4wNjYsMS45MDktLjkwNywyLjM3M1oiLz4KICA8cGF0aCBjbGFzcz0ic3Q1IiBkPSJNMTQ0Ljg4NiwxODUuMzIzbC0zLjI3MywxLjgwNmMtMS4wNjcuNTg5LTIuNDA3LjA3Ni0yLjgwOS0xLjA3NGwtMi4wNC01LjgzNWMtLjMxNy0uOTA2LjA2Ny0xLjkwOS45MDctMi4zNzNsMy4yNzMtMS44MDZjMS4wNjctLjU4OSwyLjQwNy0uMDc2LDIuODA5LDEuMDc0bDIuMDQsNS44MzVjLjMxNy45MDctLjA2NywxLjkwOS0uOTA3LDIuMzczWiIvPgogIDxwYXRoIGNsYXNzPSJzdDUiIGQ9Ik0xNjEuNzIzLDE3NS44NjFsLTMuMjczLDEuODA2Yy0xLjA2Ny41ODktMi40MDcuMDc2LTIuODA5LTEuMDc0bC0yLjA0LTUuODM1Yy0uMzE3LS45MDYuMDY2LTEuOTA5LjkwNy0yLjM3M2wzLjI3My0xLjgwNmMxLjA2Ny0uNTg5LDIuNDA3LS4wNzYsMi44MDksMS4wNzRsMi4wNCw1LjgzNWMuMzE3LjkwNi0uMDY3LDEuOTA5LS45MDcsMi4zNzNaIi8+CiAgPHBhdGggY2xhc3M9InN0NSIgZD0iTTE3OC41NiwxNjYuMzk5bC0zLjI3MywxLjgwNmMtMS4wNjcuNTg5LTIuNDA3LjA3Ni0yLjgwOS0xLjA3NGwtMi4wNC01LjgzNWMtLjMxNy0uOTA2LjA2Ny0xLjkwOS45MDctMi4zNzNsMy4yNzMtMS44MDZjMS4wNjctLjU4OSwyLjQwNy0uMDc2LDIuODA5LDEuMDc0bDIuMDQsNS44MzVjLjMxNy45MDYtLjA2NywxLjkwOS0uOTA3LDIuMzczWiIvPgogIDxwYXRoIGNsYXNzPSJzdDUiIGQ9Ik0xOTUuMzk4LDE1Ni45MzZsLTMuMjczLDEuODA2Yy0xLjA2Ny41ODktMi40MDcuMDc2LTIuODA5LTEuMDc0bC0yLjA0LTUuODM1Yy0uMzE3LS45MDYuMDY3LTEuOTA5LjkwNy0yLjM3M2wzLjI3My0xLjgwNmMxLjA2Ny0uNTg5LDIuNDA3LS4wNzYsMi44MDksMS4wNzRsMi4wMzksNS44MzVjLjMxNy45MDYtLjA2NiwxLjkwOS0uOTA3LDIuMzczWiIvPgogIDxwYXRoIGNsYXNzPSJzdDUiIGQ9Ik0yMTIuMjM1LDE0Ny40NzRsLTMuMjczLDEuODA2Yy0xLjA2Ny41ODktMi40MDcuMDc2LTIuODA5LTEuMDc0bC0yLjAzOS01LjgzNWMtLjMxNy0uOTA2LjA2Ni0xLjkwOS45MDctMi4zNzNsMy4yNzMtMS44MDZjMS4wNjctLjU4OSwyLjQwNy0uMDc2LDIuODA5LDEuMDc0bDIuMDM5LDUuODM1Yy4zMTcuOTA2LS4wNjcsMS45MDktLjkwNywyLjM3M1oiLz4KICA8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMjI5LjA3MiwxMzguMDExbC0zLjI3MywxLjgwNmMtMS4wNjcuNTg5LTIuNDA3LjA3Ni0yLjgwOS0xLjA3NGwtMi4wMzktNS44MzVjLS4zMTctLjkwNi4wNjYtMS45MDkuOTA3LTIuMzczbDMuMjczLTEuODA2YzEuMDY3LS41ODksMi40MDctLjA3NiwyLjgwOSwxLjA3NGwyLjA0LDUuODM1Yy4zMTcuOTA2LS4wNjcsMS45MDktLjkwNywyLjM3M1oiLz4KICA8cGF0aCBjbGFzcz0ic3Q1IiBkPSJNMTMzLjg0MSwyMTIuMjA5bC0zLjI3MywxLjgwNmMtMS4wNjcuNTg5LTIuNDA3LjA3Ni0yLjgwOS0xLjA3NGwtMi4wNC01LjgzNWMtLjMxNy0uOTA2LjA2Ny0xLjkwOS45MDctMi4zNzNsMy4yNzMtMS44MDZjMS4wNjctLjU4OSwyLjQwNy0uMDc2LDIuODA5LDEuMDc0bDIuMDQsNS44MzVjLjMxNy45MDYtLjA2NywxLjkwOS0uOTA3LDIuMzczWiIvPgogIDxwYXRoIGNsYXNzPSJzdDUiIGQ9Ik0xNTAuNjc4LDIwMi43NDZsLTMuMjczLDEuODA2Yy0xLjA2Ny41ODktMi40MDcuMDc2LTIuODA5LTEuMDc0bC0yLjA0LTUuODM1Yy0uMzE3LS45MDYuMDY3LTEuOTA5LjkwNy0yLjM3M2wzLjI3My0xLjgwNmMxLjA2Ny0uNTg5LDIuNDA3LS4wNzYsMi44MDksMS4wNzRsMi4wMzksNS44MzVjLjMxNy45MDYtLjA2NiwxLjkwOS0uOTA3LDIuMzczWiIvPgogIDxwYXRoIGNsYXNzPSJzdDUiIGQ9Ik0xNjcuNTE2LDE5My4yODRsLTMuMjczLDEuODA2Yy0xLjA2Ny41ODktMi40MDcuMDc2LTIuODA5LTEuMDc0bC0yLjAzOS01LjgzNWMtLjMxNy0uOTA2LjA2Ny0xLjkwOS45MDctMi4zNzNsMy4yNzMtMS44MDZjMS4wNjctLjU4OSwyLjQwNy0uMDc2LDIuODA5LDEuMDc0bDIuMDM5LDUuODM1Yy4zMTcuOTA2LS4wNjcsMS45MDktLjkwNywyLjM3M1oiLz4KICA8cGF0aCBjbGFzcz0ic3Q1IiBkPSJNMTg0LjM1MywxODMuODIxbC0zLjI3MywxLjgwNmMtMS4wNjcuNTg5LTIuNDA3LjA3Ni0yLjgwOS0xLjA3NGwtMi4wNC01LjgzNWMtLjMxNy0uOTA3LjA2Ny0xLjkwOS45MDctMi4zNzNsMy4yNzMtMS44MDZjMS4wNjctLjU4OSwyLjQwNy0uMDc3LDIuODA5LDEuMDc0bDIuMDM5LDUuODM1Yy4zMTcuOTA3LS4wNjcsMS45MDktLjkwNywyLjM3M1oiLz4KICA8cGF0aCBjbGFzcz0ic3Q1IiBkPSJNMjAxLjE5LDE3NC4zNTlsLTMuMjczLDEuODA2Yy0xLjA2Ny41ODktMi40MDcuMDc2LTIuODA5LTEuMDc0bC0yLjA0LTUuODM1Yy0uMzE3LS45MDYuMDY3LTEuOTA5LjkwNy0yLjM3M2wzLjI3My0xLjgwNmMxLjA2Ny0uNTg5LDIuNDA3LS4wNzYsMi44MDksMS4wNzRsMi4wNCw1LjgzNWMuMzE3LjkwNy0uMDY3LDEuOTA5LS45MDcsMi4zNzNaIi8+CiAgPHBhdGggY2xhc3M9InN0NSIgZD0iTTIxOC4wMjcsMTY0Ljg5NmwtMy4yNzMsMS44MDZjLTEuMDY3LjU4OS0yLjQwNy4wNzYtMi44MDktMS4wNzRsLTIuMDM5LTUuODM1Yy0uMzE3LS45MDYuMDY3LTEuOTA5LjkwNy0yLjM3M2wzLjI3My0xLjgwNmMxLjA2Ny0uNTg5LDIuNDA3LS4wNzYsMi44MDksMS4wNzRsMi4wMzksNS44MzVjLjMxNy45MDYtLjA2NiwxLjkwOS0uOTA3LDIuMzczWiIvPgogIDxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0yMzQuODY0LDE1NS40MzRsLTMuMjczLDEuODA2Yy0xLjA2Ny41ODktMi40MDcuMDc2LTIuODA5LTEuMDc0bC0yLjAzOS01LjgzNWMtLjMxNy0uOTA2LjA2Ny0xLjkwOS45MDctMi4zNzNsMy4yNzMtMS44MDZjMS4wNjctLjU4OSwyLjQwNy0uMDc2LDIuODA5LDEuMDc0bDIuMDM5LDUuODM1Yy4zMTcuOTA2LS4wNjcsMS45MDktLjkwNywyLjM3M1oiLz4KICA8cGF0aCBjbGFzcz0ic3Q1IiBkPSJNMTM5LjYzNCwyMjkuNjMxbC0zLjI3MywxLjgwNmMtMS4wNjcuNTg5LTIuNDA3LjA3Ni0yLjgwOS0xLjA3NGwtMi4wNC01LjgzNWMtLjMxNy0uOTA2LjA2Ny0xLjkwOS45MDctMi4zNzNsMy4yNzMtMS44MDZjMS4wNjctLjU4OSwyLjQwNy0uMDc2LDIuODA5LDEuMDc0bDIuMDQsNS44MzVjLjMxNy45MDYtLjA2NywxLjkwOS0uOTA3LDIuMzczWiIvPgogIDxwYXRoIGNsYXNzPSJzdDUiIGQ9Ik0xNTYuNDcxLDIyMC4xNjlsLTMuMjczLDEuODA2Yy0xLjA2Ny41ODktMi40MDcuMDc2LTIuODA5LTEuMDc0bC0yLjA0LTUuODM1Yy0uMzE3LS45MDYuMDY3LTEuOTA5LjkwNy0yLjM3M2wzLjI3My0xLjgwNmMxLjA2Ny0uNTg5LDIuNDA3LS4wNzYsMi44MDksMS4wNzRsMi4wNCw1LjgzNWMuMzE3LjkwNi0uMDY3LDEuOTA5LS45MDcsMi4zNzNaIi8+CiAgPHBhdGggY2xhc3M9InN0MSIgZD0iTTEwNS44OTgsMTEzLjU0MmMtMS4yMDUuNzAzLTIuMDE2LDIuMDA1LTIuMDE2LDMuNTAxLDAsMi4yMzksMS44MTUsNC4wNTQsNC4wNTQsNC4wNTQuMzk3LDAsLjc3OS0uMDU5LDEuMTQxLS4xNjYuMjQxLS4zMTkuNDEtLjY4LjQ2OS0xLjA5NS43NDktMi43NDgtLjgyOC01LjQ5NS0zLjY0OS02LjI5NFoiLz4KICA8cGF0aCBjbGFzcz0ic3Q1IiBkPSJNMTExLjk5LDExNy4wNDNjMC0yLjIzOS0xLjgxNS00LjA1NC00LjA1NC00LjA1NC0uNzQ0LDAtMS40MzkuMjA0LTIuMDM4LjU1NCwyLjgyLjc5OCw0LjM5OCwzLjU0NSwzLjY0OSw2LjI5NC0uMDU5LjQxNi0uMjI4Ljc3Ni0uNDY5LDEuMDk1LDEuNjgzLS40OTMsMi45MTMtMi4wNDYsMi45MTMtMy44ODhaIi8+CiAgPHBhdGggY2xhc3M9InN0MiIgZD0iTTk3LjUxOCwxMDYuODM4Yy0uMDk0LS44LS4xMS0xLjYwNS0uMDA0LTIuNDA1LS4wMjQuMTc4LS4wNDguMzU3LS4wNzIuNTM1LjA3Ny0uNTI1LjIwNi0xLjAzNy40MTItMS41MjZsLS4yMDMuNDgxYy4xLS4yMjcuMjEzLS40NDcuMzQ4LS42NTUuMDU5LS4wOS4yOTktLjQxLjA0OC0uMDg0LS4yNTcuMzM1LjAyMi0uMDExLjA5MS0uMDgyLjA3LS4wNzMuMTQ1LS4xNDEuMjItLjIwOS4zMDktLjI3Ni0uNDM4LjI5LS4wOS4wNzIuMTg5LS4xMTguMzc3LS4yMjYuNTgyLS4zMTMtLjE2LjA2OC0uMzIuMTM1LS40ODEuMjAzLjI3NS0uMTExLjU1Ny0uMTg2Ljg1LS4yMy0uMTc4LjAyNC0uMzU3LjA0OC0uNTM1LjA3Mi4zOS0uMDUyLjc4LS4wNDcsMS4xNzEuMDAyLS4xNzgtLjAyNC0uMzU3LS4wNDgtLjUzNS0uMDcyLjUzLjA3NSwxLjA0LjIyNywxLjUzNS40MzEtLjE2LS4wNjgtLjMyLS4xMzUtLjQ4MS0uMjAzLjM3OS4xNjIuNzQ2LjM1LDEuMDk5LjU2Mi4xODEuMTA5LjM1OS4yMjUuNTMzLjM0NS4xNTIuMTA1LjY2Mi41MjMuMTE0LjA2OS42NDYuNTM1LDEuMjU3LDEuMDkyLDEuODExLDEuNzI0LjEzMS4xNDkuMjU5LjMwMS4zODQuNDU1LjA0Ni4wNTcuMzI3LjQxNi4wOS4xMS0uMjM3LS4zMDYuMDQxLjA1OC4wODQuMTE3LjI1OC4zNTMuNTAzLjcxNy43MzMsMS4wODkuNDYxLjc0Ni44NjEsMS41MjcsMS4yMDMsMi4zMzQtLjA2OC0uMTYtLjEzNS0uMzItLjIwMy0uNDgxLjQ3MywxLjEzOC44MjIsMi4zMjQuOTg5LDMuNTQ3LS4wMjQtLjE3OC0uMDQ4LS4zNTctLjA3Mi0uNTM1LjEwNy44MzQuMTI4LDEuNjc1LjAxNywyLjUxLjAyNC0uMTc4LjA0OC0uMzU3LjA3Mi0uNTM1LS4wNzUuNTE0LS4yMDEsMS4wMTQtLjM5OSwxLjQ5NS4wNjgtLjE2LjEzNS0uMzIuMjAzLS40ODEtLjA5Ny4yMjQtLjIwNy40NDMtLjMzOC42NDktLjA1NS4wODYtLjMxNC40MzUtLjA2Ni4xMTIuMjQ3LS4zMjEtLjAyLjAxLS4wODguMDgxLS4wNjguMDcxLS4xMzkuMTM5LS4yMTMuMjA0LS4zMjguMjg4LjM4Ny0uMjU5LjA5Mi0uMDY5LS4xOTQuMTI1LS4zOS4yMzYtLjYwMy4zMjcuMTYtLjA2OC4zMi0uMTM1LjQ4MS0uMjAzLS4yMDYuMDgzLS40MTYuMTQ2LS42MzQuMTkyLTEuMDMxLjIyLTEuNzI2LDEuNDgzLTEuNDA1LDIuNDc1LjM1MiwxLjA4NywxLjM3MSwxLjY0MSwyLjQ3NSwxLjQwNSwxLjM2OS0uMjkyLDIuNDc5LTEuMTUxLDMuMjgzLTIuMjY5LjgxNS0xLjEzMywxLjEzLTIuNTcyLDEuMjIxLTMuOTQuMTgtMi42ODgtLjcwNi01LjQzOS0xLjkzOC03Ljc5NC0xLjI0OS0yLjM4OC0zLjA0MS00LjUzLTUuMjYzLTYuMDY2LTIuMTQyLTEuNDgxLTQuODk2LTIuMjE3LTcuMzQxLTEuMDU3LTIuNzg3LDEuMzIyLTMuNTMyLDQuODIyLTMuMjA2LDcuNjEuMDY1LjU1MS4xODIsMS4wMTUuNTg5LDEuNDIzLjM0OS4zNDkuOTIyLjYxMiwxLjQyMy41ODkuNTItLjAyMywxLjA2LS4xOTQsMS40MjMtLjU4OS4zMzctLjM2Ny42NS0uOTA1LjU4OS0xLjQyM2gwWiIvPgogIDxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0xOTAuNDI2LDYzLjExMWMtMS4yMDUuNzAzLTIuMDE2LDIuMDA2LTIuMDE2LDMuNTAxLDAsMi4yMzksMS44MTUsNC4wNTQsNC4wNTQsNC4wNTQuMzk3LDAsLjc3OS0uMDU5LDEuMTQxLS4xNjYuMjQxLS4zMTkuNDEtLjY4LjQ2OS0xLjA5Ni43NS0yLjc0OC0uODI4LTUuNDk1LTMuNjQ4LTYuMjk0WiIvPgogIDxwYXRoIGNsYXNzPSJzdDUiIGQ9Ik0xOTYuNTE5LDY2LjYxMmMwLTIuMjM5LTEuODE1LTQuMDU0LTQuMDU0LTQuMDU0LS43NDQsMC0xLjQzOS4yMDQtMi4wMzguNTUzLDIuODIuNzk4LDQuMzk4LDMuNTQ1LDMuNjQ4LDYuMjk0LS4wNTkuNDE2LS4yMjguNzc2LS40NjksMS4wOTYsMS42ODMtLjQ5MywyLjkxMy0yLjA0NiwyLjkxMy0zLjg4OFoiLz4KICA8cGF0aCBjbGFzcz0ic3QyIiBkPSJNMTgyLjA0Nyw1Ni40MDdjLS4wOTQtLjgtLjExLTEuNjA1LS4wMDQtMi40MDUtLjAyNC4xNzgtLjA0OC4zNTctLjA3Mi41MzUuMDc3LS41MjUuMjA2LTEuMDM3LjQxMi0xLjUyNi0uMDY4LjE2LS4xMzUuMzItLjIwMy40ODEuMS0uMjI3LjIxMy0uNDQ3LjM0OC0uNjU2LjA1OC0uMDkuMjk5LS40MS4wNDgtLjA4NC0uMjU3LjMzNS4wMjItLjAxMS4wOTEtLjA4Mi4wNzEtLjA3My4xNDUtLjE0MS4yMi0uMjA5LjMwOS0uMjc2LS40MzguMjktLjA5MS4wNzIuMTg5LS4xMTguMzc3LS4yMjYuNTgzLS4zMTMtLjE2LjA2OC0uMzIuMTM1LS40ODEuMjAzLjI3NS0uMTExLjU1Ny0uMTg2Ljg1LS4yMy0uMTc4LjAyNC0uMzU3LjA0OC0uNTM1LjA3Mi4zOS0uMDUyLjc4LS4wNDcsMS4xNzEuMDAyLS4xNzgtLjAyNC0uMzU3LS4wNDgtLjUzNS0uMDcyLjUzMS4wNzUsMS4wNC4yMjcsMS41MzUuNDMxLS4xNi0uMDY4LS4zMi0uMTM1LS40ODEtLjIwMy4zNzkuMTYyLjc0Ni4zNSwxLjA5OS41NjMuMTgxLjEwOS4zNTkuMjI1LjUzMy4zNDUuMTUyLjEwNS42NjIuNTIzLjExNC4wNjkuNjQ2LjUzNSwxLjI1NywxLjA5MiwxLjgxMSwxLjcyNC4xMzEuMTQ5LjI1OS4zMDEuMzg0LjQ1NS4wNDYuMDU3LjMyNy40MTYuMDkuMTEtLjIzNy0uMzA2LjA0LjA1OC4wODQuMTE3LjI1OC4zNTMuNTAzLjcxNy43MzMsMS4wODkuNDYxLjc0Ni44NjEsMS41MjcsMS4yMDMsMi4zMzQtLjA2OC0uMTYtLjEzNS0uMzItLjIwMy0uNDgxLjQ3MywxLjEzOC44MjIsMi4zMjQuOTg5LDMuNTQ3LS4wMjQtLjE3OC0uMDQ4LS4zNTctLjA3Mi0uNTM1LjEwNy44MzQuMTI4LDEuNjc1LjAxNywyLjUxLjAyNC0uMTc4LjA0OC0uMzU3LjA3Mi0uNTM1LS4wNzUuNTE0LS4yMDEsMS4wMTQtLjM5OSwxLjQ5NS4wNjgtLjE2LjEzNS0uMzIuMjAzLS40ODEtLjA5Ny4yMjQtLjIwNy40NDMtLjMzOC42NDktLjA1NS4wODYtLjMxNC40MzUtLjA2Ni4xMTIuMjQ3LS4zMjEtLjAyLjAxLS4wODguMDgxLS4wNjguMDcxLS4xMzkuMTM5LS4yMTMuMjA0LS4zMjguMjg4LjM4Ny0uMjU5LjA5Mi0uMDctLjE5NC4xMjUtLjM5LjIzNi0uNjAzLjMyNy4xNi0uMDY4LjMyMS0uMTM1LjQ4MS0uMjAzLS4yMDYuMDgzLS40MTYuMTQ2LS42MzQuMTkyLTEuMDMxLjIyLTEuNzI2LDEuNDgzLTEuNDA1LDIuNDc1LjM1MiwxLjA4NywxLjM3MSwxLjY0MSwyLjQ3NSwxLjQwNSwxLjM2OS0uMjkyLDIuNDc5LTEuMTUxLDMuMjgzLTIuMjY5LjgxNS0xLjEzMywxLjEzLTIuNTcyLDEuMjIyLTMuOTQuMTgtMi42ODgtLjcwNi01LjQzOS0xLjkzOC03Ljc5NC0xLjI0OS0yLjM4OC0zLjA0MS00LjUzLTUuMjYzLTYuMDY2LTIuMTQyLTEuNDgxLTQuODk2LTIuMjE3LTcuMzQxLTEuMDU3LTIuNzg3LDEuMzIxLTMuNTMyLDQuODIyLTMuMjA2LDcuNjEuMDY1LjU1MS4xODIsMS4wMTUuNTg5LDEuNDIzLjM0OS4zNDkuOTIyLjYxMiwxLjQyMy41ODkuNTItLjAyMywxLjA2LS4xOTQsMS40MjMtLjU4OS4zMzYtLjM2Ny42NS0uOTA1LjU4OS0xLjQyM2gwWiIvPgo8L3N2Zz4=");
+}
+/* カタログ請求ボタン用アイコン（本番: images/tour/icon-request.svg） */
+.yoyaku-cta__request span::before{
+  background-image:url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iX+ODrOOCpOODpOODvF8xIiBkYXRhLW5hbWU9IuODrOOCpOODpOODvF8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIiB2ZXJzaW9uPSIxLjEiIHZpZXdCb3g9IjAgMCAzMDAgMzAwIj4KICA8IS0tIEdlbmVyYXRvcjogQWRvYmUgSWxsdXN0cmF0b3IgMzAuNC4wLCBTVkcgRXhwb3J0IFBsdWctSW4gLiBTVkcgVmVyc2lvbjogMi4xLjQgQnVpbGQgMjI2KSAgLS0+CiAgPGRlZnM+CiAgICA8c3R5bGU+CiAgICAgIC5zdDAgewogICAgICAgIGZpbGw6ICM1YWM4OTE7CiAgICAgIH0KCiAgICAgIC5zdDEgewogICAgICAgIGZpbGw6ICNjOGM4Yzg7CiAgICAgIH0KCiAgICAgIC5zdDIgewogICAgICAgIGZpbGw6ICNmNWY1ZjU7CiAgICAgIH0KCiAgICAgIC5zdDMgewogICAgICAgIGZpbGw6ICNlNmU2ZTY7CiAgICAgIH0KICAgIDwvc3R5bGU+CiAgPC9kZWZzPgogIDxwb2x5Z29uIGNsYXNzPSJzdDIiIHBvaW50cz0iMjEwLjQ0NCAyNS4zMTYgOTAuOCA5NC4zOTMgOTEuMzE0IDI3NS43MDUgMjEwLjk1OCAyMDYuNjI4IDIxMC40NDQgMjUuMzE2Ii8+CiAgPHBvbHlnb24gY2xhc3M9InN0MSIgcG9pbnRzPSI4OS4wNDIgOTMuMzcyIDg5LjU1NiAyNzQuNjg0IDkxLjMxNCAyNzUuNzA1IDkwLjggOTQuMzkzIDg5LjA0MiA5My4zNzIiLz4KICA8cG9seWdvbiBjbGFzcz0ic3QxIiBwb2ludHM9IjIxMC40NDQgMjUuMzE2IDIwOC42ODYgMjQuMjk1IDg5LjA0MiA5My4zNzIgOTAuOCA5NC4zOTMgMjEwLjQ0NCAyNS4zMTYiLz4KICA8cGF0aCBjbGFzcz0ic3QxIiBkPSJNMTI1Ljc3NSwxNjMuOTQ1YzIuMzM2LTEuMzQ5LDQuNjczLTIuNjk4LDcuMDA5LTQuMDQ3LDUuNjA5LTMuMjM4LDExLjIxNy02LjQ3NiwxNi44MjYtOS43MTQsNi43NDUtMy44OTQsMTMuNDktNy43ODksMjAuMjM1LTExLjY4Myw1Ljg2MS0zLjM4NCwxMS43MjItNi43NjcsMTcuNTgzLTEwLjE1MSwyLjgzNy0xLjYzOCw1LjczOS0zLjE5Nyw4LjUyNS00LjkyMi4wMzgtLjAyMy4wNzctLjA0NC4xMTUtLjA2NiwxLjM5LS44MDIuMTM1LTIuOTU5LTEuMjU5LTIuMTU0LTIuMzM2LDEuMzQ5LTQuNjczLDIuNjk4LTcuMDA5LDQuMDQ3LTUuNjA5LDMuMjM4LTExLjIxNyw2LjQ3Ni0xNi44MjYsOS43MTQtNi43NDUsMy44OTQtMTMuNDksNy43ODgtMjAuMjM1LDExLjY4My01Ljg2MSwzLjM4NC0xMS43MjIsNi43NjgtMTcuNTgzLDEwLjE1MS0yLjgzNywxLjYzOC01LjczOSwzLjE5Ny04LjUyNSw0LjkyMi0uMDM4LjAyMy0uMDc3LjA0NC0uMTE1LjA2Ny0xLjM5LjgwMi0uMTM1LDIuOTU5LDEuMjU5LDIuMTU0aDBaIi8+CiAgPHBhdGggY2xhc3M9InN0MSIgZD0iTTEyNS43NzUsMTc1LjQ0OWMyLjMzNi0xLjM0OSw0LjY3My0yLjY5OCw3LjAwOS00LjA0Nyw1LjYwOS0zLjIzOCwxMS4yMTctNi40NzYsMTYuODI2LTkuNzE0LDYuNzQ1LTMuODk0LDEzLjQ5LTcuNzg4LDIwLjIzNS0xMS42ODMsNS44NjEtMy4zODQsMTEuNzIyLTYuNzY3LDE3LjU4My0xMC4xNTEsMi44MzctMS42MzgsNS43MzktMy4xOTcsOC41MjUtNC45MjIuMDM4LS4wMjMuMDc3LS4wNDQuMTE1LS4wNjYsMS4zOS0uODAyLjEzNS0yLjk1OS0xLjI1OS0yLjE1NC0yLjMzNiwxLjM0OS00LjY3MywyLjY5OC03LjAwOSw0LjA0Ny01LjYwOSwzLjIzOC0xMS4yMTcsNi40NzYtMTYuODI2LDkuNzE0LTYuNzQ1LDMuODk0LTEzLjQ5LDcuNzg4LTIwLjIzNSwxMS42ODMtNS44NjEsMy4zODQtMTEuNzIyLDYuNzY4LTE3LjU4MywxMC4xNTEtMi44MzcsMS42MzgtNS43MzksMy4xOTctOC41MjUsNC45MjItLjAzOC4wMjMtLjA3Ny4wNDQtLjExNS4wNjYtMS4zOS44MDMtLjEzNSwyLjk1OSwxLjI1OSwyLjE1NGgwWiIvPgogIDxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0xMjUuNzc1LDE4Ni45NTNjMi4zMzYtMS4zNDksNC42NzMtMi42OTgsNy4wMDktNC4wNDcsNS42MDktMy4yMzgsMTEuMjE3LTYuNDc2LDE2LjgyNi05LjcxNCw2Ljc0NS0zLjg5NCwxMy40OS03Ljc4OCwyMC4yMzUtMTEuNjgzLDUuODYxLTMuMzg0LDExLjcyMi02Ljc2OCwxNy41ODMtMTAuMTUxLDIuODM3LTEuNjM4LDUuNzM5LTMuMTk3LDguNTI1LTQuOTIyLjAzOC0uMDIzLjA3Ny0uMDQ0LjExNS0uMDY2LDEuMzktLjgwMi4xMzUtMi45NTktMS4yNTktMi4xNTQtMi4zMzYsMS4zNDktNC42NzMsMi42OTgtNy4wMDksNC4wNDctNS42MDksMy4yMzgtMTEuMjE3LDYuNDc2LTE2LjgyNiw5LjcxNC02Ljc0NSwzLjg5NC0xMy40OSw3Ljc4OC0yMC4yMzUsMTEuNjgzLTUuODYxLDMuMzg0LTExLjcyMiw2Ljc2Ny0xNy41ODMsMTAuMTUxLTIuODM3LDEuNjM4LTUuNzM5LDMuMTk3LTguNTI1LDQuOTIyLS4wMzguMDIzLS4wNzcuMDQ0LS4xMTUuMDY2LTEuMzkuODAyLS4xMzUsMi45NTksMS4yNTksMi4xNTRoMFoiLz4KICA8cGF0aCBjbGFzcz0ic3QxIiBkPSJNMTI1Ljc3NSwxOTguNDU2YzIuMzM2LTEuMzQ5LDQuNjczLTIuNjk4LDcuMDA5LTQuMDQ3LDUuNjA5LTMuMjM4LDExLjIxNy02LjQ3NiwxNi44MjYtOS43MTQsNi43NDUtMy44OTQsMTMuNDktNy43ODgsMjAuMjM1LTExLjY4Myw1Ljg2MS0zLjM4NCwxMS43MjItNi43NjgsMTcuNTgzLTEwLjE1MSwyLjgzNy0xLjYzOCw1LjczOS0zLjE5Nyw4LjUyNS00LjkyMi4wMzgtLjAyMy4wNzctLjA0NC4xMTUtLjA2NiwxLjM5LS44MDMuMTM1LTIuOTU5LTEuMjU5LTIuMTU0LTIuMzM2LDEuMzQ5LTQuNjczLDIuNjk4LTcuMDA5LDQuMDQ3LTUuNjA5LDMuMjM4LTExLjIxNyw2LjQ3Ni0xNi44MjYsOS43MTQtNi43NDUsMy44OTQtMTMuNDksNy43ODgtMjAuMjM1LDExLjY4My01Ljg2MSwzLjM4NC0xMS43MjIsNi43NjctMTcuNTgzLDEwLjE1MS0yLjgzNywxLjYzOC01LjczOSwzLjE5Ny04LjUyNSw0LjkyMi0uMDM4LjAyMy0uMDc3LjA0NC0uMTE1LjA2Ni0xLjM5LjgwMy0uMTM1LDIuOTU5LDEuMjU5LDIuMTU0aDBaIi8+CiAgPHBhdGggY2xhc3M9InN0MSIgZD0iTTEyNS43NzUsMjA5Ljk2YzIuMzM2LTEuMzQ5LDQuNjczLTIuNjk4LDcuMDA5LTQuMDQ3LDUuNjA5LTMuMjM4LDExLjIxNy02LjQ3NiwxNi44MjYtOS43MTQsNi43NDUtMy44OTQsMTMuNDktNy43ODgsMjAuMjM1LTExLjY4Myw1Ljg2MS0zLjM4NCwxMS43MjItNi43NjgsMTcuNTgzLTEwLjE1MSwyLjgzNy0xLjYzOCw1LjczOS0zLjE5Nyw4LjUyNS00LjkyMi4wMzgtLjAyMy4wNzctLjA0NC4xMTUtLjA2NiwxLjM5LS44MDIuMTM1LTIuOTU5LTEuMjU5LTIuMTU0LTIuMzM2LDEuMzQ5LTQuNjczLDIuNjk4LTcuMDA5LDQuMDQ3LTUuNjA5LDMuMjM4LTExLjIxNyw2LjQ3Ni0xNi44MjYsOS43MTQtNi43NDUsMy44OTQtMTMuNDksNy43ODktMjAuMjM1LDExLjY4My01Ljg2MSwzLjM4NC0xMS43MjIsNi43NjgtMTcuNTgzLDEwLjE1MS0yLjgzNywxLjYzOC01LjczOSwzLjE5Ny04LjUyNSw0LjkyMi0uMDM4LjAyMy0uMDc3LjA0NC0uMTE1LjA2Ni0xLjM5LjgwMy0uMTM1LDIuOTU5LDEuMjU5LDIuMTU0aDBaIi8+CiAgPHBhdGggY2xhc3M9InN0MSIgZD0iTTEyNS43NzUsMjIxLjQ2M2MyLjMzNi0xLjM0OSw0LjY3My0yLjY5OCw3LjAwOS00LjA0Nyw1LjYwOS0zLjIzOCwxMS4yMTctNi40NzYsMTYuODI2LTkuNzE0LDYuNzQ1LTMuODk0LDEzLjQ5LTcuNzg4LDIwLjIzNS0xMS42ODMsNS44NjEtMy4zODQsMTEuNzIyLTYuNzY4LDE3LjU4My0xMC4xNTEsMi44MzctMS42MzgsNS43MzktMy4xOTcsOC41MjUtNC45MjIuMDM4LS4wMjMuMDc3LS4wNDQuMTE1LS4wNjYsMS4zOS0uODAyLjEzNS0yLjk1OS0xLjI1OS0yLjE1NC0yLjMzNiwxLjM0OS00LjY3MywyLjY5OC03LjAwOSw0LjA0Ny01LjYwOSwzLjIzOC0xMS4yMTcsNi40NzYtMTYuODI2LDkuNzE0LTYuNzQ1LDMuODk0LTEzLjQ5LDcuNzg5LTIwLjIzNSwxMS42ODMtNS44NjEsMy4zODQtMTEuNzIyLDYuNzY3LTE3LjU4MywxMC4xNTEtMi44MzcsMS42MzgtNS43MzksMy4xOTctOC41MjUsNC45MjItLjAzOC4wMjMtLjA3Ny4wNDQtLjExNS4wNjYtMS4zOS44MDItLjEzNSwyLjk1OSwxLjI1OSwyLjE1NGgwWiIvPgogIDxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0xNDcuNjQ5LDkyLjg2MmMxLjYwOC0uOTI4LDMuMjE2LTEuODU2LDQuODIzLTIuNzg1LDMuODYtMi4yMjksNy43Mi00LjQ1NywxMS41OC02LjY4Niw0LjY1LTIuNjg1LDkuMy01LjM3LDEzLjk1LTguMDU0LDQuMDM1LTIuMzMsOC4wNzEtNC42NiwxMi4xMDctNi45OSwxLjk1NC0xLjEyOCwzLjk2Ni0yLjE5Myw1Ljg3Ny0zLjM5My4wMjYtLjAxNi4wNTQtLjAzMS4wODEtLjA0NywxLjM5LS44MDIuMTM1LTIuOTU5LTEuMjU5LTIuMTU0LTEuNjA4LjkyOC0zLjIxNiwxLjg1Ni00LjgyMywyLjc4NS0zLjg2LDIuMjI5LTcuNzIsNC40NTctMTEuNTgsNi42ODYtNC42NSwyLjY4NS05LjMsNS4zNjktMTMuOTUsOC4wNTRsLTEyLjEwNiw2Ljk5Yy0xLjk1NCwxLjEyOC0zLjk2NiwyLjE5My01Ljg3NywzLjM5My0uMDI2LjAxNi0uMDU0LjAzMS0uMDgxLjA0Ny0xLjM5LjgwMi0uMTM1LDIuOTU5LDEuMjU5LDIuMTU0aDBaIi8+CiAgPHBhdGggY2xhc3M9InN0MSIgZD0iTTE0Ny42NDksMTAzLjA4OWMxLjYwOC0uOTI4LDMuMjE2LTEuODU2LDQuODIzLTIuNzg1LDMuODYtMi4yMjksNy43Mi00LjQ1NywxMS41OC02LjY4Niw0LjY1LTIuNjg1LDkuMy01LjM2OSwxMy45NS04LjA1NCw0LjAzNS0yLjMzLDguMDcxLTQuNjYsMTIuMTA3LTYuOTksMS45NTQtMS4xMjgsMy45NjYtMi4xOTMsNS44NzctMy4zOTMuMDI2LS4wMTYuMDU0LS4wMzEuMDgxLS4wNDcsMS4zOS0uODAyLjEzNS0yLjk1OS0xLjI1OS0yLjE1NC0xLjYwOC45MjgtMy4yMTYsMS44NTYtNC44MjMsMi43ODUtMy44NiwyLjIyOS03LjcyLDQuNDU3LTExLjU4LDYuNjg2LTQuNjUsMi42ODUtOS4zLDUuMzY5LTEzLjk1LDguMDU0bC0xMi4xMDYsNi45OWMtMS45NTQsMS4xMjgtMy45NjYsMi4xOTMtNS44NzcsMy4zOTMtLjAyNi4wMTYtLjA1NC4wMzEtLjA4MS4wNDctMS4zOS44MDItLjEzNSwyLjk1OSwxLjI1OSwyLjE1NGgwWiIvPgogIDxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0xNDcuNjQ5LDExMy4zMTVjMS42MDgtLjkyOCwzLjIxNi0xLjg1Niw0LjgyMy0yLjc4NSwzLjg2LTIuMjI5LDcuNzItNC40NTcsMTEuNTgtNi42ODYsNC42NS0yLjY4NSw5LjMtNS4zNjksMTMuOTUtOC4wNTQsNC4wMzUtMi4zMyw4LjA3MS00LjY2LDEyLjEwNy02Ljk5LDEuOTU0LTEuMTI4LDMuOTY2LTIuMTkzLDUuODc3LTMuMzkzLjAyNi0uMDE3LjA1NC0uMDMxLjA4MS0uMDQ3LDEuMzktLjgwMi4xMzUtMi45NTktMS4yNTktMi4xNTQtMS42MDguOTI4LTMuMjE2LDEuODU2LTQuODIzLDIuNzg1LTMuODYsMi4yMjktNy43Miw0LjQ1Ny0xMS41OCw2LjY4Ni00LjY1LDIuNjg1LTkuMyw1LjM3LTEzLjk1LDguMDU0bC0xMi4xMDYsNi45OWMtMS45NTQsMS4xMjgtMy45NjYsMi4xOTMtNS44NzcsMy4zOTMtLjAyNi4wMTYtLjA1NC4wMzEtLjA4MS4wNDctMS4zOS44MDItLjEzNSwyLjk1OSwxLjI1OSwyLjE1NGgwWiIvPgogIDxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0xNDcuNjQ5LDEyMy41NDJjMS42MDgtLjkyOCwzLjIxNi0xLjg1Niw0LjgyMy0yLjc4NSwzLjg2LTIuMjI5LDcuNzItNC40NTcsMTEuNTgtNi42ODYsNC42NS0yLjY4NSw5LjMtNS4zNjksMTMuOTUtOC4wNTQsNC4wMzUtMi4zMyw4LjA3MS00LjY2LDEyLjEwNy02Ljk5LDEuOTU0LTEuMTI4LDMuOTY2LTIuMTkzLDUuODc3LTMuMzkzLjAyNi0uMDE2LjA1NC0uMDMxLjA4MS0uMDQ3LDEuMzktLjgwMi4xMzUtMi45NTktMS4yNTktMi4xNTQtMS42MDguOTI4LTMuMjE2LDEuODU2LTQuODIzLDIuNzg1LTMuODYsMi4yMjktNy43Miw0LjQ1Ny0xMS41OCw2LjY4Ni00LjY1LDIuNjg1LTkuMyw1LjM3LTEzLjk1LDguMDU0LTQuMDM1LDIuMzMtOC4wNzEsNC42Ni0xMi4xMDYsNi45OS0xLjk1NCwxLjEyOC0zLjk2NiwyLjE5My01Ljg3NywzLjM5My0uMDI2LjAxNi0uMDU0LjAzMS0uMDgxLjA0Ny0xLjM5LjgwMy0uMTM1LDIuOTU5LDEuMjU5LDIuMTU0aDBaIi8+CiAgPHBvbHlnb24gY2xhc3M9InN0MyIgcG9pbnRzPSIxMzkuMzA5IDEyOC4xMDcgMTA1LjU3OCAxNDcuNTgxIDEwNS41NzggMTEyLjA5NiAxMzkuMzA5IDkyLjYyMSAxMzkuMzA5IDEyOC4xMDciLz4KICA8cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjExMi44MTMgMTc4LjM0MyAxMDUuNTc4IDE4Mi41MjEgMTA1LjU3OCAxNzQuMTY2IDExMi44MTMgMTY5Ljk4OSAxMTIuODEzIDE3OC4zNDMiLz4KICA8cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjExMi44MTMgMjAxLjM1MSAxMDUuNTc4IDIwNS41MjggMTA1LjU3OCAxOTcuMTczIDExMi44MTMgMTkyLjk5NiAxMTIuODEzIDIwMS4zNTEiLz4KICA8cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjExMi44MTMgMjI0LjM1OCAxMDUuNTc4IDIyOC41MzUgMTA1LjU3OCAyMjAuMTggMTEyLjgxMyAyMTYuMDAzIDExMi44MTMgMjI0LjM1OCIvPgo8L3N2Zz4=");
+}
+body.sp-mode .yoyaku-cta__flex{
+  gap:8px;
+}
+body.sp-mode .yoyaku-cta__flex a{
+  height:72px;
+  font-size:13px;
+}
+body.sp-mode .yoyaku-cta__flex small{
+  font-size:10px;
+}
+@media only screen and (max-width:768px) and (min-width:0px){
+  .yoyaku-cta__flex{gap:8px;}
+  .yoyaku-cta__flex a{height:72px;font-size:13px;}
+  .yoyaku-cta__flex small{font-size:10px;}
+}
+.tel-note{font-size:12px;color:var(--wh-gray);line-height:1.9;}
+#yoyaku p.tel-note{margin:24px 0 0;}
+
+/* ① 予約枠オフ時のCTA（Bパターン） */
+.cta-off{margin:32px 0;}
+.cta-off__title{
+  font-family:"Yu Mincho","Hiragino Mincho Pro",serif;
+  font-size:20px;font-weight:600;text-align:center;
+  margin:0 0 4px;
+}
+body.sp-mode .cta-off__title{font-size:16px;}
+.cta-off .place-sub{
+  text-align:center;font-size:13px;color:#444;padding:8px 0 16px;
+}
+.cta-off .btn-row{
+  display:flex;gap:12px;justify-content:center;flex-wrap:wrap;
+}
+.cta-btn{
+  flex:1;min-width:150px;max-width:260px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  text-align:center;text-decoration:none;
+  color:#fff;font-weight:bold;font-size:15px;
+  padding:14px 8px;border-radius:4px;
+}
+.cta-btn::before{
+  content:"";display:inline-block;width:18px;height:18px;flex:0 0 auto;
+  background-repeat:no-repeat;background-position:center;background-size:contain;
+}
+.cta-btn.line{background:var(--line-green);}
+/* LINE：吹き出し＋LINE文字（プレビュー用の近似。実装時は公式配布アイコンに差し替え） */
+.cta-btn.line::before{
+  width:22px;height:22px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' d='M12 2.5C6.2 2.5 1.5 6.36 1.5 11.11c0 4.26 3.76 7.83 8.84 8.5.34.07.81.23.93.52.11.27.07.68.04.95l-.15.9c-.05.27-.21 1.05.92.57 1.13-.48 6.1-3.6 8.32-6.16 1.54-1.69 2.1-3.4 2.1-5.28 0-4.75-4.7-8.61-10.5-8.61z'/%3E%3Ctext x='12' y='13.6' text-anchor='middle' font-family='Arial,Helvetica,sans-serif' font-weight='bold' font-size='5.2' fill='%2306c755'%3ELINE%3C/text%3E%3C/svg%3E");
+}
+.cta-btn.tel{background:#4a4a4a;}
+/* 電話：受話器アイコン */
+.cta-btn.tel::before{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24c1.12.37 2.33.57 3.57.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.61 21 3 13.39 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.24.2 2.45.57 3.57a1 1 0 0 1-.24 1.02l-2.21 2.2z'/%3E%3C/svg%3E");
+}
+.cta-btn.doc{background:var(--wh-orange-soft);}
+.cta-btn.staff-link{background:#fff;color:var(--wh-ink);border:2px solid var(--wh-orange);}
+.cta-cap{font-size:12px;color:var(--wh-gray);text-align:center;padding-top:4px;}
+.cta-off .btn-row + .btn-row{margin-top:12px;}
+.btn-gmap-open{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border:1px solid var(--wh-ink);color:var(--wh-ink);
+  text-decoration:none;font-size:14px;padding:10px 32px;border-radius:3px;
+  transition:background .2s;
+}
+/* マップピンのアイコン */
+.btn-gmap-open::before{
+  content:"";display:inline-block;width:16px;height:16px;flex:0 0 auto;
+  background-repeat:no-repeat;background-position:center;background-size:contain;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231a1a1a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z'/%3E%3Ccircle cx='12' cy='10' r='2.5'/%3E%3C/svg%3E");
+}
+.btn-gmap-open:hover{background:#f7f7f7;}
+/* ヒーローカルーセル直下のGoogleMAPリンク */
+.fv-gmap{text-align:center;margin-top:32px;}
+body.sp-mode .fv-gmap .btn-gmap-open{display:block;padding:12px;font-size:13px;}
+
+/* 見どころポイント */
+#point{margin:36px 0;}
+#point h2{
+  font-family:"Yu Mincho","Hiragino Mincho Pro",serif;
+  font-size:20px;text-align:center;margin:0 0 16px;font-weight:600;
+}
+#point h3{font-size:15px;margin:18px 0 4px;color:var(--wh-ink);}
+#point p{font-size:14px;color:#444;}
+
+/* ③ 地図：イラストのみ */
+#map{margin:36px 0;text-align:center;}
+.map-illust{
+  width:100%;aspect-ratio:1/1;margin:0 auto 12px;
+  background:#d4d4d4;
+  display:flex;align-items:center;justify-content:center;
+  color:#777;font-size:14px;line-height:1.7;
+}
+.gmap-removed{
+  background:#fff;border:1px dashed var(--wh-orange-soft);color:#c9701f;
+  font-size:12px;padding:10px;border-radius:2px;margin:0 auto 12px;max-width:520px;
+}
+body.hide-notes .gmap-removed{display:none;}
+
+
+@media (max-width:480px){
+  .staff-grid{grid-template-columns:1fr;}
+  .entry-title{font-size:16px;}
+  #yoyaku h2,#point h2,.cta-off__title{font-size:16px;}
+}
+
+/* ==================== セクション間の余白調整 ==================== */
+.lp-inner > .note-box{margin:0 0 72px;}
+.lp-inner > .note-box:first-child{margin-bottom:0;}  /* FV直後はタイトルが続くため詰める */
+.tour_wrap{margin:20px 0 56px;}
+#point{margin:72px 0;}
+#yoyaku{margin:16px 0;}   /* note-box内のため内側は控えめに */
+#map{margin:16px 0;}
+body.sp-mode .lp-inner > .note-box{margin:0 0 48px;}
+body.sp-mode .lp-inner > .note-box:first-child{margin-bottom:0;}
+body.sp-mode .tour_wrap{margin:16px 0 40px;}
+body.sp-mode #point{margin:48px 0;}
+</style>
+</head>
+<body>
+
+<!-- ==================== プレビュー操作ツールバー ==================== -->
+<div class="toolbar">
+  <span class="tb-title">見学会LP 改善プレビュー</span>
+  <div class="tb-group">
+    <span>表示：</span>
+    <button class="tb-btn active" id="btnPc" onclick="setDevice('pc')">PC版</button>
+    <button class="tb-btn" id="btnSp" onclick="setDevice('sp')">スマホ版</button>
+  </div>
+  <div class="tb-group">
+    <span>WEB予約：</span>
+    <button class="tb-btn active" id="btnOn" onclick="setYoyaku(true)">A：あり</button>
+    <button class="tb-btn" id="btnOff" onclick="setYoyaku(false)">B：なし</button>
+  </div>
+  <div class="tb-group">
+    <span>変更注釈：</span>
+    <button class="tb-btn active" id="btnNotes" onclick="toggleNotes()">表示中</button>
+  </div>
+</div>
+
+<div class="stage">
+<div class="device">
+
+  <div class="lp-inner">
+
+    <!-- ==================== ④ ファーストビュー ==================== -->
+    <div class="note-box">
+      <span class="note">変更④ FVを写真から開始（マガジンメニュー・投稿日・カテゴリタグ等を上部から削除）＋ カルーセル直下にGoogleMAPリンクを設置</span>
+      <section class="fv">
+        <div class="carousel-main">
+          <div class="photo" id="carSlide">メイン画像（間取りイラストパース）</div>
+          <button class="c-arrow prev" onclick="moveSlide(-1)" aria-label="前の写真"></button>
+          <button class="c-arrow next" onclick="moveSlide(1)" aria-label="次の写真"></button>
+        </div>
+        <p class="carousel-cap" id="carCap">【9/5(土)6(日)】掛川市上西郷 リノベーション完成見学会</p>
+        <div class="carousel-thumbs" id="carThumbs"></div>
+        <div class="fv-gmap">
+          <a href="#" class="btn-gmap-open" onclick="return false;">会場の場所をGoogleMAPで確認する</a>
+        </div>
+      </section>
+    </div>
+
+    <h1 class="entry-title">【9/5(土)6(日)】掛川市上西郷<br>｜〈リノベーション〉～築30年の平屋をリノベ～<br>家族の笑顔が見渡せる 健康＆快適なロフトがある平屋</h1>
+
+    <div class="tags-links">
+      <a href="#" onclick="return false;">リフォーム</a>
+      <a href="#" onclick="return false;">平屋・平屋風</a>
+      <a href="#" onclick="return false;">掛川</a>
+      <a href="#" onclick="return false;">見学会・セミナー</a>
+    </div>
+
+    <div class="tour_wrap">
+      <table>
+        <tr><th scope="row">開催日</th><td>：9/5(土)・6(日)</td></tr>
+        <tr><th scope="row">時間・場所</th><td>：10:00～16:00【ご予約制】・掛川市上西郷</td></tr>
+        <tr><th scope="row">スペック</th><td>：築30年の平屋リノベーション</td></tr>
+      </table>
+    </div>
+
+    <!-- ==================== ② 対応スタッフはこちら ==================== -->
+    <div class="note-box">
+      <span class="note">変更② FV直下に「対応スタッフはこちら」ボタン＋アコーディオン展開（写真1枚＋出身・母校・趣味まで／ブログ記事一覧は出さない）</span>
+      <button class="staff-toggle" id="staffToggle" onclick="toggleStaff()">イベント参加予定のスタッフはこちら</button>
+      <div class="staff-panel" id="staffPanel">
+        <div class="staff-panel-inner">
+          <div class="staff-grid">
+            <div class="staff-card">
+              <div class="staff-photo" style="background:#cfcfcf;">写真</div>
+              <div class="name">冨永 青葉</div>
+              <div class="role">ライフコーディネーター</div>
+              <dl>
+                <dt>出身</dt><dd>磐田市（生まれも磐田）</dd>
+                <dt>母校</dt><dd>磐田市内の小・中学校</dd>
+                <dt>趣味</dt><dd>旅行・ショッピング</dd>
+              </dl>
+            </div>
+            <div class="staff-card">
+              <div class="staff-photo" style="background:#c6c6c6;">写真</div>
+              <div class="name">土屋 有希</div>
+              <div class="role">ライフコーディネーター</div>
+              <dl>
+                <dt>出身</dt><dd>袋井市（静岡県袋井市）</dd>
+                <dt>母校</dt><dd>袋井市内の小・中学校</dd>
+                <dt>趣味</dt><dd>読書・京都観光・建物を見ること</dd>
+              </dl>
+            </div>
+            <div class="staff-card">
+              <div class="staff-photo" style="background:#d2d2d2;">写真</div>
+              <div class="name">三井 麻衣</div>
+              <div class="role">ライフコーディネーター</div>
+              <dl>
+                <dt>出身</dt><dd>静岡県西部</dd>
+                <dt>母校</dt><dd>大知波小・大山中</dd>
+                <dt>趣味</dt><dd>ショッピング・カメラ・スキューバダイビング</dd>
+              </dl>
+            </div>
+            <div class="staff-card">
+              <div class="staff-photo" style="background:#c9c9c9;">写真</div>
+              <div class="name">切刀 香奈</div>
+              <div class="role">ライフコーディネーター</div>
+              <dl>
+                <dt>出身</dt><dd>袋井市（山梨県生まれ）</dd>
+                <dt>母校</dt><dd>白根巨摩中 ほか</dd>
+                <dt>趣味</dt><dd>サッカー観戦</dd>
+              </dl>
+            </div>
+            <div class="staff-card">
+              <div class="staff-photo" style="background:#cccccc;">写真</div>
+              <div class="name">川合 菜月</div>
+              <div class="role">ライフコーディネーター</div>
+              <dl>
+                <dt>出身</dt><dd>菊川市（浜松市生まれ）</dd>
+                <dt>母校</dt><dd>市内の小・中学校</dd>
+                <dt>趣味</dt><dd>友達と遊ぶこと・ピアノ</dd>
+              </dl>
+            </div>
+            <div class="staff-card">
+              <div class="staff-photo" style="background:#d5d5d5;">写真</div>
+              <div class="name">大村 菜里</div>
+              <div class="role">ライフコーディネーター</div>
+              <dl>
+                <dt>出身</dt><dd>袋井市（静岡県生まれ）</dd>
+                <dt>母校</dt><dd>市内の小・中学校</dd>
+                <dt>趣味</dt><dd>音楽を聴くこと</dd>
+              </dl>
+            </div>
+          </div>
+          <div class="staff-more">
+            <a href="https://winghome.jp/staff" target="_blank" rel="noopener">スタッフ紹介ページはこちら<span class="arrow"></span></a>
+          </div>
+          <div class="staff-close">
+            <button type="button" onclick="closeStaff()">閉じる</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== ① 予約セクション A/B ==================== -->
+    <div class="note-box">
+      <span class="note">変更① WEB予約なし時も弱めCTAを表示（アクセス／LINE／電話／資料請求）※ツールバーで A/B 切替</span>
+
+      <!-- Aパターン：予約受付中（従来どおり） -->
+      <section id="yoyaku" class="yoyaku-on">
+        <h2>ご予約はこちら【3分で簡単予約♪】</h2>
+        <ul class="yoyaku-cta__flex">
+          <li class="yoyaku-cta__yoyaku"><a href="#" onclick="return false;"><span>見学会を予約をする</span><small>3分で簡単予約</small></a></li>
+          <li class="yoyaku-cta__request"><a href="#" onclick="return false;"><span>カタログを請求する</span><small>無料／郵送・DL対応</small></a></li>
+        </ul>
+        <p class="tel-note">▽お電話やメールからでも受け付けています<br>※当日でのご予約はお電話からお願い致します<br>TEL：0537-36-3425〔お電話対応時間〕9:00～18:00</p>
+      </section>
+
+      <!-- Bパターン：WEB予約なし（開催日翌日以降など） -->
+      <section class="cta-off yoyaku-off" style="display:none;">
+        <h2 class="cta-off__title">お店の場所（アクセス情報）</h2>
+        <p class="place-sub">静岡県袋井市の工務店 ウイングホーム</p>
+        <div class="btn-row">
+          <div style="flex:1;min-width:150px;max-width:260px;">
+            <a href="#" class="cta-btn line" onclick="return false;" style="max-width:none;">LINEで相談する</a>
+            <div class="cta-cap">お気軽にご相談ください</div>
+          </div>
+          <div style="flex:1;min-width:150px;max-width:260px;">
+            <a href="tel:0537363425" class="cta-btn tel" onclick="return false;" style="max-width:none;">電話で相談する</a>
+            <div class="cta-cap">〔受付時間〕9:00～18:00</div>
+          </div>
+        </div>
+        <ul class="yoyaku-cta__flex is-single">
+          <li class="yoyaku-cta__request"><a href="#" onclick="return false;"><span>カタログを請求する</span><small>無料／郵送・DL対応</small></a></li>
+        </ul>
+      </section>
+    </div>
+
+    <!-- ==================== 見どころポイント ==================== -->
+    <section id="point">
+      <h2>今回の見どころポイント</h2>
+      <h3>壁に向かって食器洗いするのが寂しかったキッチンが…</h3>
+      <p>家族の顔を見ながら家事ができる、対面キッチンに生まれ変わりました。</p>
+      <h3>平屋だから浸水した時のことを考えたら心配だったけど…</h3>
+      <p>ロフトのある平屋にリノベーション。万が一の時にも安心の住まいに。</p>
+      <h3>明るいのはいいけど、夏が大きくて暑く寂しかった我が家が…</h3>
+      <p>断熱リノベーションで、一年中快適な温度で暮らせるお家になりました。</p>
+    </section>
+
+    <!-- ==================== ③ 地図 ==================== -->
+    <div class="note-box">
+      <span class="note">変更③ GoogleMAP埋め込みを削除。地図イラスト＋「GoogleMAPで開く」ボタンのみ</span>
+      <section id="map">
+        <div class="gmap-removed">▲ ここにあった GoogleMAP埋め込み（iframe）は削除</div>
+        <div class="map-illust">地図イラスト<br>（リノベーション完成見学会 掛川市上西郷）</div>
+        <div><a href="#" class="btn-gmap-open" onclick="return false;">会場の場所をGoogleMAPで確認する</a></div>
+      </section>
+    </div>
+
+    <!-- 末尾のCTA：予約＋カタログ請求（ページ上部は予約のみ） -->
+    <section class="yoyaku-on" style="margin:72px 0 48px;">
+      <ul class="yoyaku-cta__flex">
+        <li class="yoyaku-cta__yoyaku"><a href="#" onclick="return false;"><span>見学会を予約をする</span><small>3分で簡単予約</small></a></li>
+        <li class="yoyaku-cta__request"><a href="#" onclick="return false;"><span>カタログを請求する</span><small>無料／郵送・DL対応</small></a></li>
+      </ul>
+    </section>
+    <section class="yoyaku-off" style="margin:72px 0 48px;display:none;">
+      <ul class="yoyaku-cta__flex is-single">
+        <li class="yoyaku-cta__request"><a href="#" onclick="return false;"><span>カタログを請求する</span><small>無料／郵送・DL対応</small></a></li>
+      </ul>
+    </section>
+
+  </div><!--.lp-inner-->
+
+</div><!--.device-->
+</div><!--.stage-->
+
+<script>
+function setDevice(mode){
+  document.body.classList.toggle('sp-mode', mode==='sp');
+  setTimeout(refreshStaffHeight, 320);  // 幅のtransition後に高さを取り直す
+  document.getElementById('btnPc').classList.toggle('active', mode==='pc');
+  document.getElementById('btnSp').classList.toggle('active', mode==='sp');
+}
+function setYoyaku(on){
+  document.querySelectorAll('.yoyaku-on').forEach(el=>el.style.display = on ? '' : 'none');
+  document.querySelectorAll('.yoyaku-off').forEach(el=>el.style.display = on ? 'none' : '');
+  document.getElementById('btnOn').classList.toggle('active', on);
+  document.getElementById('btnOff').classList.toggle('active', !on);
+}
+function toggleNotes(){
+  const hidden = document.body.classList.toggle('hide-notes');
+  const b = document.getElementById('btnNotes');
+  b.textContent = hidden ? '非表示' : '表示中';
+  b.classList.toggle('active', !hidden);
+}
+function toggleStaff(){
+  const panel = document.getElementById('staffPanel');
+  const btn   = document.getElementById('staffToggle');
+  const isOpen = panel.classList.toggle('open');
+  btn.classList.toggle('open', isOpen);
+  // 中身の実高さを都度計測して設定（スタッフ数の増減・画面幅の変化に追従）
+  panel.style.maxHeight = isOpen ? panel.scrollHeight + 'px' : '0px';
+}
+function closeStaff(){
+  const panel = document.getElementById('staffPanel');
+  const btn   = document.getElementById('staffToggle');
+  panel.classList.remove('open');
+  btn.classList.remove('open');
+  panel.style.maxHeight = '0px';
+  btn.scrollIntoView({behavior:'smooth', block:'start'});
+}
+// 画面幅の変更・PC/SP切替で高さを再計算
+function refreshStaffHeight(){
+  const panel = document.getElementById('staffPanel');
+  if(panel && panel.classList.contains('open')){
+    panel.style.maxHeight = 'none';
+    const h = panel.scrollHeight;
+    panel.style.maxHeight = h + 'px';
+  }
+}
+window.addEventListener('resize', refreshStaffHeight);
+// 画像読み込み完了後にもズレないよう再計算
+window.addEventListener('load', refreshStaffHeight);
+
+/* ==================== FVカルーセル ==================== */
+const slides = [
+  {label:'メイン画像（間取りイラストパース）', cap:'【9/5(土)6(日)】掛川市上西郷 リノベーション完成見学会',
+   bg:'#d4d4d4'},
+  {label:'写真：対面キッチン', cap:'キッチン↔ダイニングの横移動で無駄な動きをカット！',
+   bg:'#d4d4d4'},
+  {label:'写真：ロフト', cap:'健康＆快適！家族の気配を感じられるロフトのある平屋に',
+   bg:'#d4d4d4'},
+  {label:'写真：リビング', cap:'断熱リノベーションで一年中快適な温度で暮らせるお家に',
+   bg:'#d4d4d4'},
+  {label:'写真：洗面スペース', cap:'家事ラク動線でお洗濯もスムーズに♪',
+   bg:'#d4d4d4'}
+];
+let cur = 0;
+function renderSlide(){
+  const s = slides[cur];
+  const slide = document.getElementById('carSlide');
+  slide.style.background = s.bg;
+  slide.textContent = s.label;
+  document.getElementById('carCap').textContent = s.cap;
+  document.querySelectorAll('#carThumbs .thumb').forEach((t,i)=>{
+    t.classList.toggle('on', i===cur);
+  });
+}
+function moveSlide(d){
+  cur = (cur + d + slides.length) % slides.length;
+  renderSlide();
+}
+(function initThumbs(){
+  const wrap = document.getElementById('carThumbs');
+  slides.forEach((s,i)=>{
+    const t = document.createElement('div');
+    t.className = 'thumb';
+    t.style.background = s.bg;
+    t.textContent = s.label.replace('写真：','');
+    t.onclick = ()=>{ cur = i; renderSlide(); };
+    wrap.appendChild(t);
+  });
+  renderSlide();
+})();
+</script>
+</body>
+</html>
